@@ -4,8 +4,87 @@ import numpy as np
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
+import plotly.io as pio
 
-st.set_page_config(page_title="월별 매출 대시보드", layout="wide")
+# =========================
+# Palette (Deep Navy to Light Grayish Blue)
+# =========================
+P0 = "#19345C"  # Deep Navy (primary)
+P1 = "#7688A0"  # Muted Steel Blue
+P2 = "#8B9BB0"  # Cool Gray-Blue
+P3 = "#D7DDE5"  # Light Gray-Blue (surface)
+P4 = "#8593B2"  # Accent Blue
+
+COLORWAY = [P0, P4, P1, P2, "#A9B4C9"]  # Plotly 순환 색
+GRIDCOLOR = "#C8CFDA"                    # 격자선
+PAPER_BG = "#FFFFFF"                     # 차트 바깥
+PLOT_BG  = "#F4F6FA"                     # 차트 안쪽
+
+# Plotly 템플릿
+pio.templates["custom_blue"] = go.layout.Template(
+    layout=dict(
+        colorway=COLORWAY,
+        font=dict(family="Pretendard, Noto Sans KR, Segoe UI, Roboto, Arial", size=13, color=P0),
+        paper_bgcolor=PAPER_BG,
+        plot_bgcolor=PLOT_BG,
+        xaxis=dict(gridcolor=GRIDCOLOR, zerolinecolor=GRIDCOLOR),
+        yaxis=dict(gridcolor=GRIDCOLOR, zerolinecolor=GRIDCOLOR),
+        legend=dict(bordercolor="#E6EAF0", borderwidth=0),
+        margin=dict(l=20, r=20, t=30, b=30)
+    )
+)
+pio.templates.default = "custom_blue"
+
+# =========================
+# Streamlit 기본 설정 + 스타일
+# =========================
+st.set_page_config(page_title="월별 매출 대시보드", layout="wide", page_icon="📊")
+st.markdown(
+    f"""
+    <style>
+        .stApp {{
+            background: linear-gradient(180deg, #f7f9fc 0%, {P3} 100%);
+        }}
+        .main > div:first-child h1 {{
+            color: {P0};
+            letter-spacing: 0.2px;
+        }}
+        .stDivider hr {{
+            border-top: 1px solid {GRIDCOLOR};
+        }}
+        section[data-testid="stSidebar"] {{
+            background-color: #f0f3f8 !important;
+            border-right: 1px solid {GRIDCOLOR};
+        }}
+        label, section p {{
+            color: {P0} !important;
+        }}
+        .stButton > button {{
+            background: {P0};
+            color: white;
+            border: 0;
+            border-radius: 10px;
+        }}
+        .stButton > button:hover {{
+            background: {P4};
+        }}
+        .metric-card {{
+            background: white;
+            border: 1px solid {GRIDCOLOR};
+            border-left: 6px solid {P0};
+            border-radius: 12px;
+            padding: 14px 16px;
+            box-shadow: 0 4px 10px rgba(25,52,92,0.06);
+        }}
+        .stDataFrame thead th {{
+            background-color: #F2F5FA !important;
+            color: {P0} !important;
+        }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 st.title("📊 월별 매출 대시보드 (Streamlit)")
 st.caption("CSV 업로드 후 4가지 시각화가 자동 생성됩니다. 컬럼: 월(YYYY-MM), 매출액, 전년동월, 증감률(%). 미입력 시 증감률은 전년동월로 자동 계산합니다.")
 
@@ -27,8 +106,7 @@ SAMPLE_CSV = (
 
 @st.cache_data
 def read_csv(file) -> pd.DataFrame:
-    df = pd.read_csv(file)
-    return df
+    return pd.read_csv(file)
 
 @st.cache_data
 def parse_sample(sample_text: str) -> pd.DataFrame:
@@ -37,29 +115,25 @@ def parse_sample(sample_text: str) -> pd.DataFrame:
 @st.cache_data
 def enrich_df(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
-    # 표준화된 컬럼명 가정: 월, 매출액, 전년동월, 증감률
     df["월"] = df["월"].astype(str).str.strip()
-    # 날짜 정렬용 컬럼
     df["_date"] = pd.to_datetime(df["월"], format="%Y-%m", errors="coerce")
     df = df.sort_values("_date").reset_index(drop=True)
-    # 숫자 캐스팅
     for c in ["매출액", "전년동월"]:
         df[c] = pd.to_numeric(df[c], errors="coerce")
     if "증감률" in df.columns:
         df["증감률"] = pd.to_numeric(df.get("증감률"), errors="coerce")
     else:
         df["증감률"] = np.nan
-    # 증감률 자동 계산
     missing_mask = df["증감률"].isna()
     df.loc[missing_mask & df["전년동월"].ne(0), "증감률"] = (
-        (df.loc[missing_mask, "매출액"] - df.loc[missing_mask, "전년동월"]) / df.loc[missing_mask, "전년동월"] * 100
+        (df.loc[missing_mask, "매출액"] - df.loc[missing_mask, "전년동월"])
+        / df.loc[missing_mask, "전년동월"] * 100
     )
     df["증감률"] = df["증감률"].fillna(0)
-    # 분기 계산
     df["분기"] = df["_date"].dt.quarter
     return df
 
-# Sidebar: 파일 업로드 / 샘플 버튼 / KPI 목표
+# Sidebar
 with st.sidebar:
     st.header("⚙️ 설정")
     uploaded = st.file_uploader("CSV 업로드", type=["csv"], accept_multiple_files=False)
@@ -86,78 +160,64 @@ except Exception as e:
 col1, col2, col3, col4 = st.columns(4)
 with col1:
     total_sales = int(df["매출액"].sum())
-    st.metric("총합 매출", f"{total_sales:,.0f}원")
+    st.markdown(f"<div class='metric-card'><div style='color:{P1};font-size:13px;'>총합 매출</div><div style='color:{P0};font-weight:700;font-size:22px'>{total_sales:,.0f}원</div></div>", unsafe_allow_html=True)
 with col2:
     avg_yoy = float(df["증감률"].mean())
-    st.metric("평균 증감률", f"{avg_yoy:.1f}%")
+    st.markdown(f"<div class='metric-card'><div style='color:{P1};font-size:13px;'>평균 증감률</div><div style='color:{P0};font-weight:700;font-size:22px'>{avg_yoy:.1f}%</div></div>", unsafe_allow_html=True)
 with col3:
     max_idx = df["매출액"].idxmax()
-    st.metric("최고 매출 (월)", f"{df.loc[max_idx,'월']} · {df.loc[max_idx,'매출액']:,.0f}원")
+    st.markdown(f"<div class='metric-card'><div style='color:{P1};font-size:13px;'>최고 매출 (월)</div><div style='color:{P0};font-weight:700;font-size:22px'>{df.loc[max_idx,'월']} · {df.loc[max_idx,'매출액']:,.0f}원</div></div>", unsafe_allow_html=True)
 with col4:
     min_idx = df["매출액"].idxmin()
-    st.metric("최저 매출 (월)", f"{df.loc[min_idx,'월']} · {df.loc[min_idx,'매출액']:,.0f}원")
+    st.markdown(f"<div class='metric-card'><div style='color:{P1};font-size:13px;'>최저 매출 (월)</div><div style='color:{P0};font-weight:700;font-size:22px'>{df.loc[min_idx,'월']} · {df.loc[min_idx,'매출액']:,.0f}원</div></div>", unsafe_allow_html=True)
 
 st.divider()
 
-# 1) 월별 매출 추이 (이중선)
-with st.container():
-    st.subheader("1) 월별 매출 추이 (매출액 vs 전년동월)")
-    fig_trend = go.Figure()
-    fig_trend.add_trace(go.Scatter(
-        x=df["월"], y=df["매출액"], mode="lines+markers", name="매출액"
-    ))
-    fig_trend.add_trace(go.Scatter(
-        x=df["월"], y=df["전년동월"], mode="lines+markers", name="전년동월", line=dict(dash="dash")
-    ))
-    # 마커(최고/최저)
-    fig_trend.add_trace(go.Scatter(
-        x=[df.loc[max_idx, "월"]], y=[df.loc[max_idx, "매출액"]], mode="markers+text",
-        name="최고", text=["최고"], textposition="top center"
-    ))
-    fig_trend.add_trace(go.Scatter(
-        x=[df.loc[min_idx, "월"]], y=[df.loc[min_idx, "매출액"]], mode="markers+text",
-        name="최저", text=["최저"], textposition="bottom center"
-    ))
-    fig_trend.update_layout(
-        margin=dict(l=20, r=20, t=10, b=20),
-        yaxis_title="매출액 (원)", xaxis_title="월"
-    )
-    st.plotly_chart(fig_trend, use_container_width=True)
+# 1) 월별 매출 추이
+st.subheader("1) 월별 매출 추이 (매출액 vs 전년동월)")
+fig_trend = go.Figure()
+fig_trend.add_trace(go.Scatter(
+    x=df["월"], y=df["매출액"], mode="lines+markers", name="매출액",
+    line=dict(width=3, color=P0), marker=dict(size=7, line=dict(width=1, color="#FFFFFF"))
+))
+fig_trend.add_trace(go.Scatter(
+    x=df["월"], y=df["전년동월"], mode="lines+markers", name="전년동월",
+    line=dict(width=2, dash="dash", color=P2), marker=dict(size=6)
+))
+fig_trend.update_layout(yaxis_title="매출액 (원)", xaxis_title="월")
+st.plotly_chart(fig_trend, use_container_width=True)
 
-# 2) 전년 대비 증감률 (막대)
-with st.container():
-    st.subheader("2) 전년 대비 증감률")
-    colors = ["#34d399" if v >= 0 else "#f87171" for v in df["증감률"]]
-    fig_yoy = go.Figure(go.Bar(x=df["월"], y=df["증감률"], marker_color=colors, name="증감률"))
-    fig_yoy.update_layout(
-        margin=dict(l=20, r=20, t=10, b=20),
-        yaxis_title="증감률 (%)", xaxis_title="월"
-    )
-    st.plotly_chart(fig_yoy, use_container_width=True)
+# 2) 전년 대비 증감률
+st.subheader("2) 전년 대비 증감률")
+bar_colors = [P0 if v >= 0 else P2 for v in df["증감률"]]
+fig_yoy = go.Figure(go.Bar(
+    x=df["월"], y=df["증감률"], marker_color=bar_colors, name="증감률"
+))
+fig_yoy.update_layout(yaxis_title="증감률 (%)", xaxis_title="월")
+st.plotly_chart(fig_yoy, use_container_width=True)
 
 # 3) 분기별 매출 분포 (Boxplot)
-with st.container():
-    st.subheader("3) 분기별 매출 분포 (Boxplot)")
-    # Boxplot + jittered points
-    fig_box = px.box(df, x="분기", y="매출액", points="all")
-    fig_box.update_layout(
-        margin=dict(l=20, r=20, t=10, b=20),
-        yaxis_title="매출액 (원)", xaxis_title="분기"
-    )
-    st.plotly_chart(fig_box, use_container_width=True)
+st.subheader("3) 분기별 매출 분포 (Boxplot)")
+fig_box = px.box(df, x="분기", y="매출액", points="all", color_discrete_sequence=[P4])
+fig_box.update_traces(marker=dict(size=6, line=dict(width=1, color="#FFFFFF")))
+fig_box.update_layout(yaxis_title="매출액 (원)", xaxis_title="분기")
+st.plotly_chart(fig_box, use_container_width=True)
 
-# 4) 월별 KPI 달성률 (라인 + 목표선)
-with st.container():
-    st.subheader("4) 월별 KPI 달성률 (목표선 100%)")
-    rate = (df["매출액"] / (target if target else 1)) * 100.0
-    fig_kpi = go.Figure()
-    fig_kpi.add_trace(go.Scatter(x=df["월"], y=rate, mode="lines+markers", name="달성률"))
-    fig_kpi.add_hline(y=100, line_dash="dash", annotation_text="목표 100%", annotation_position="top left")
-    fig_kpi.update_layout(
-        margin=dict(l=20, r=20, t=10, b=20),
-        yaxis_title="달성률 (%)", xaxis_title="월"
-    )
-    st.plotly_chart(fig_kpi, use_container_width=True)
+# 4) 월별 KPI 달성률
+st.subheader("4) 월별 KPI 달성률 (목표선 100%)")
+rate = (df["매출액"] / (target if target else 1)) * 100.0
+fig_kpi = go.Figure()
+fig_kpi.add_trace(go.Scatter(
+    x=df["월"], y=rate, mode="lines+markers", name="달성률",
+    line=dict(width=3, color=P4), marker=dict(size=7, line=dict(width=1, color="#FFFFFF"))
+))
+fig_kpi.add_hline(
+    y=100, line_dash="dash", line_color=P2,
+    annotation_text="목표 100%", annotation_position="top left",
+    annotation_font=dict(color=P0)
+)
+fig_kpi.update_layout(yaxis_title="달성률 (%)", xaxis_title="월")
+st.plotly_chart(fig_kpi, use_container_width=True)
 
 st.divider()
 st.subheader("데이터 미리보기")
