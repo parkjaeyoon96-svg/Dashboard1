@@ -173,51 +173,59 @@ with col4:
 
 st.divider()
 
-# 1) 월별 매출 추이
-st.subheader("1) 월별 매출 추이 (매출액 vs 전년동월)")
-fig_trend = go.Figure()
-fig_trend.add_trace(go.Scatter(
-    x=df["월"], y=df["매출액"], mode="lines+markers", name="매출액",
-    line=dict(width=3, color=P0), marker=dict(size=7, line=dict(width=1, color="#FFFFFF"))
-))
-fig_trend.add_trace(go.Scatter(
-    x=df["월"], y=df["전년동월"], mode="lines+markers", name="전년동월",
-    line=dict(width=2, dash="dash", color=P2), marker=dict(size=6)
-))
-fig_trend.update_layout(yaxis_title="매출액 (원)", xaxis_title="월")
-st.plotly_chart(fig_trend, use_container_width=True)
+# ===== 2x2 Grid Layout =====
+row1_col1, row1_col2 = st.columns(2, gap="large")
+row2_col1, row2_col2 = st.columns(2, gap="large")
 
-# 2) 전년 대비 증감률
-st.subheader("2) 전년 대비 증감률")
-bar_colors = [P0 if v >= 0 else P2 for v in df["증감률"]]
-fig_yoy = go.Figure(go.Bar(
-    x=df["월"], y=df["증감률"], marker_color=bar_colors, name="증감률"
-))
-fig_yoy.update_layout(yaxis_title="증감률 (%)", xaxis_title="월")
-st.plotly_chart(fig_yoy, use_container_width=True)
+# 1) 월별 매출 추이 (좌상)
+with row1_col1:
+    st.subheader("1) 월별 매출 추이 (매출액 vs 전년동월)")
+    fig_trend = go.Figure()
+    fig_trend.add_trace(go.Scatter(
+        x=df["월"], y=df["매출액"], mode="lines+markers", name="매출액",
+        line=dict(width=3, color=P0), marker=dict(size=7, line=dict(width=1, color="#FFFFFF"))
+    ))
+    fig_trend.add_trace(go.Scatter(
+        x=df["월"], y=df["전년동월"], mode="lines+markers", name="전년동월",
+        line=dict(width=2, dash="dash", color=P2), marker=dict(size=6)
+    ))
+    fig_trend.update_layout(yaxis_title="매출액 (원)", xaxis_title="월", height=360)
+    st.plotly_chart(fig_trend, use_container_width=True)
 
-# 3) 분기별 매출 분포 (Boxplot)
-st.subheader("3) 분기별 매출 분포 (Boxplot)")
-fig_box = px.box(df, x="분기", y="매출액", points="all", color_discrete_sequence=[P1])
-fig_box.update_traces(marker=dict(size=6, line=dict(width=1, color="#FFFFFF")))
-fig_box.update_layout(yaxis_title="매출액 (원)", xaxis_title="분기")
-st.plotly_chart(fig_box, use_container_width=True)
+# 2) 전년 대비 증감률 (우상)
+with row1_col2:
+    st.subheader("2) 전년 대비 증감률")
+    bar_colors = [P0 if v >= 0 else P2 for v in df["증감률"]]
+    fig_yoy = go.Figure(go.Bar(
+        x=df["월"], y=df["증감률"], marker_color=bar_colors, name="증감률"
+    ))
+    fig_yoy.update_layout(yaxis_title="증감률 (%)", xaxis_title="월", height=360)
+    st.plotly_chart(fig_yoy, use_container_width=True)
 
-# 4) 월별 KPI 달성률
-st.subheader("4) 월별 KPI 달성률 (목표선 100%)")
-rate = (df["매출액"] / (target if target else 1)) * 100.0
-fig_kpi = go.Figure()
-fig_kpi.add_trace(go.Scatter(
-    x=df["월"], y=rate, mode="lines+markers", name="달성률",
-    line=dict(width=3, color=P1), marker=dict(size=7, line=dict(width=1, color="#FFFFFF"))
-))
-fig_kpi.add_hline(
-    y=100, line_dash="dash", line_color=P2,
-    annotation_text="목표 100%", annotation_position="top left",
-    annotation_font=dict(color=P0)
-)
-fig_kpi.update_layout(yaxis_title="달성률 (%)", xaxis_title="월")
-st.plotly_chart(fig_kpi, use_container_width=True)
+# 3) 분기별 매출 분포 (좌하)
+with row2_col1:
+    st.subheader("3) 분기별 매출 분포 (Boxplot)")
+    fig_box = px.box(df, x="분기", y="매출액", points="all", color_discrete_sequence=[P1])
+    fig_box.update_traces(marker=dict(size=6, line=dict(width=1, color="#FFFFFF")))
+    fig_box.update_layout(yaxis_title="매출액 (원)", xaxis_title="분기", height=360)
+    st.plotly_chart(fig_box, use_container_width=True)
+
+# 4) 월별 KPI 달성률 (우하) + 목표선 빨간 점선
+with row2_col2:
+    st.subheader("4) 월별 KPI 달성률 (목표선 100%)")
+    rate = (df["매출액"] / (target if target else 1)) * 100.0
+    fig_kpi = go.Figure()
+    fig_kpi.add_trace(go.Scatter(
+        x=df["월"], y=rate, mode="lines+markers", name="달성률",
+        line=dict(width=3, color=P1), marker=dict(size=7, line=dict(width=1, color="#FFFFFF"))
+    ))
+    fig_kpi.add_hline(
+        y=100, line_dash="dash", line_color="#E53935",
+        annotation_text="목표 100%", annotation_position="top left",
+        annotation_font=dict(color="#E53935")
+    )
+    fig_kpi.update_layout(yaxis_title="달성률 (%)", xaxis_title="월", height=360)
+    st.plotly_chart(fig_kpi, use_container_width=True)
 
 st.divider()
 st.subheader("데이터 미리보기")
