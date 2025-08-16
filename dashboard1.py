@@ -7,21 +7,21 @@ import plotly.graph_objects as go
 import plotly.io as pio
 
 # =========================
-# Palette (Deep Navy to Light Grayish Blue)
+# Palette (Green tones)
 # =========================
-P0 = "#19345C"  # Deep Navy (primary)
-P1 = "#7688A0"  # Muted Steel Blue
-P2 = "#8B9BB0"  # Cool Gray-Blue
-P3 = "#D7DDE5"  # Light Gray-Blue (surface)
-P4 = "#8593B2"  # Accent Blue
+P0 = "#03C55A"  # Deep Green (primary)
+P1 = "#4DD27D"  # Medium Green
+P2 = "#3BCC73"  # Fresh Green
+P3 = "#79DC9C"  # Light Green
+P4 = "#C5EED4"  # Very Light Green
 
-COLORWAY = [P0, P4, P1, P2, "#A9B4C9"]  # Plotly 순환 색
-GRIDCOLOR = "#C8CFDA"                    # 격자선
-PAPER_BG = "#FFFFFF"                     # 차트 바깥
-PLOT_BG  = "#F4F6FA"                     # 차트 안쪽
+COLORWAY = [P0, P1, P2, P3, P4]  # Plotly 순환 색
+GRIDCOLOR = "#D9F2E2"            # 격자선 (밝은 그린 톤)
+PAPER_BG = "#FFFFFF"             # 차트 바깥
+PLOT_BG  = "#F7FCF9"             # 차트 안쪽 (연녹색톤)
 
 # Plotly 템플릿
-pio.templates["custom_blue"] = go.layout.Template(
+pio.templates["custom_green"] = go.layout.Template(
     layout=dict(
         colorway=COLORWAY,
         font=dict(family="Pretendard, Noto Sans KR, Segoe UI, Roboto, Arial", size=13, color=P0),
@@ -33,7 +33,7 @@ pio.templates["custom_blue"] = go.layout.Template(
         margin=dict(l=20, r=20, t=30, b=30)
     )
 )
-pio.templates.default = "custom_blue"
+pio.templates.default = "custom_green"
 
 # =========================
 # Streamlit 기본 설정 + 스타일
@@ -43,7 +43,7 @@ st.markdown(
     f"""
     <style>
         .stApp {{
-            background: linear-gradient(180deg, #f7f9fc 0%, {P3} 100%);
+            background: linear-gradient(180deg, #f7f9fc 0%, {P4} 100%);
         }}
         .main > div:first-child h1 {{
             color: {P0};
@@ -53,7 +53,7 @@ st.markdown(
             border-top: 1px solid {GRIDCOLOR};
         }}
         section[data-testid="stSidebar"] {{
-            background-color: #f0f3f8 !important;
+            background-color: #f0fdf6 !important;
             border-right: 1px solid {GRIDCOLOR};
         }}
         label, section p {{
@@ -66,7 +66,7 @@ st.markdown(
             border-radius: 10px;
         }}
         .stButton > button:hover {{
-            background: {P4};
+            background: {P1};
         }}
         .metric-card {{
             background: white;
@@ -74,10 +74,10 @@ st.markdown(
             border-left: 6px solid {P0};
             border-radius: 12px;
             padding: 14px 16px;
-            box-shadow: 0 4px 10px rgba(25,52,92,0.06);
+            box-shadow: 0 4px 10px rgba(3,197,90,0.06);
         }}
         .stDataFrame thead th {{
-            background-color: #F2F5FA !important;
+            background-color: #F2FBF7 !important;
             color: {P0} !important;
         }}
     </style>
@@ -198,7 +198,7 @@ st.plotly_chart(fig_yoy, use_container_width=True)
 
 # 3) 분기별 매출 분포 (Boxplot)
 st.subheader("3) 분기별 매출 분포 (Boxplot)")
-fig_box = px.box(df, x="분기", y="매출액", points="all", color_discrete_sequence=[P4])
+fig_box = px.box(df, x="분기", y="매출액", points="all", color_discrete_sequence=[P1])
 fig_box.update_traces(marker=dict(size=6, line=dict(width=1, color="#FFFFFF")))
 fig_box.update_layout(yaxis_title="매출액 (원)", xaxis_title="분기")
 st.plotly_chart(fig_box, use_container_width=True)
@@ -209,7 +209,7 @@ rate = (df["매출액"] / (target if target else 1)) * 100.0
 fig_kpi = go.Figure()
 fig_kpi.add_trace(go.Scatter(
     x=df["월"], y=rate, mode="lines+markers", name="달성률",
-    line=dict(width=3, color=P4), marker=dict(size=7, line=dict(width=1, color="#FFFFFF"))
+    line=dict(width=3, color=P1), marker=dict(size=7, line=dict(width=1, color="#FFFFFF"))
 ))
 fig_kpi.add_hline(
     y=100, line_dash="dash", line_color=P2,
